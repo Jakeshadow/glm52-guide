@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLM 5.2 Production Manual — Full Multi-GPU, 1M Context & Security Pipeline Guide</title>
+  <meta name="description" content="Complete GLM 5.2 deployment manual — 8 chapters, vLLM/SGLang configs, 1M context KV cache tuning, CI/CD security pipeline, 20+ error fixes. $19 one-time.">
+  <meta property="og:title" content="GLM 5.2 Production Manual — Full Deployment Guide">
+  <meta property="og:description" content="8 chapters, vLLM/SGLang configs, 1M context tuning, CI/CD security pipeline. $19 one-time.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://glm52.dev/production-guide/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GLM 5.2 Production Manual">
+  <meta name="twitter:description" content="Complete deployment manual — 8 chapters, vLLM/SGLang configs, security pipeline. $19.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/production-guide/">
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+  <script>
+    Paddle.Initialize({
+      token: "live_ac20e72a72c5af23043c2b394ed",
+      environment: "production",
+      checkout: {
+        settings: {
+          displayMode: "overlay",
+          theme: "light",
+          locale: "auto",
+          successUrl: "https://glm52.dev/thanks/?_ptxn={transaction_id}"
+        }
+      }
+    });
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">One-Time Purchase</p>
+        <h1>Not Documentation. Battle-Tested Configs.</h1>
+        <p class="hero-subtitle">GLM 5.2 was open-sourced 14 days ago. We ran it on 8×H200, stress-tested 1M context workloads, and built a CI/CD security pipeline from scratch. Every config in this manual was tested live — not copied from the README.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Free vs Paid: What's in the Manual</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Free Guides</th><th>Production Manual ($19)</th></tr></thead>
+            <tbody>
+              <tr><td>Architecture overview of GLM 5.2</td><td>Full vLLM/SGLang config with every flag explained</td></tr>
+              <tr><td>Basic VRAM formula</td><td>Hardware sizing tables for 10+ GPU configurations</td></tr>
+              <tr><td>One-shot <code>vllm serve</code> command</td><td>Production docker-compose.yml + nginx + systemd</td></tr>
+              <tr><td>Overview of the security pipeline</td><td>Complete GitHub Actions workflow + Docker setup</td></tr>
+              <tr><td>"Here's what IndexShare does"</td><td>KV cache tuning methodology with benchmark data</td></tr>
+              <tr><td>Single-node GPU setup</td><td>Multi-node NCCL tuning, expert parallelism, load balancing</td></tr>
+              <tr><td>API pricing comparison</td><td>Self-host vs API break-even calculation for your volume</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>What's Inside — 8 Chapters</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Ch</th><th>What You'll Learn</th></tr></thead>
+            <tbody>
+              <tr><td><strong>0.</strong></td><td><strong>Before You Start</strong> — Who this is for, hardware prerequisites, what's NOT covered (GLM basics, fine-tuning, Windows). Free vs paid boundary.</td></tr>
+              <tr><td><strong>1.</strong></td><td><strong>Production Architecture</strong> — Production docker-compose.yml with nginx reverse proxy, systemd service, pre-deployment checklist (reboot test mandatory).</td></tr>
+              <tr><td><strong>2.</strong></td><td><strong>1M Context Memory Deep Dive</strong> — Full memory profile breakdown, KV cache calculator, FP8 quantization, OOM prevention workflow, prefix caching strategy for multi-tenant.</td></tr>
+              <tr><td><strong>3.</strong></td><td><strong>MoE Multi-GPU Self-Hosting</strong> — vLLM MoE flags explained, SGLang RadixAttention config, llama.cpp GGUF for budget, expert parallelism vs tensor parallelism, NCCL tuning matrices for 8 hardware setups.</td></tr>
+              <tr><td><strong>4.</strong></td><td><strong>Quantization Strategy</strong> — FP8/FP16/Q8_0/Q5_K_M/Q4_K_M comparison per task type, conversion workflow (HF→GGUF, HF→FP8), quality impact by use case.</td></tr>
+              <tr><td><strong>5.</strong></td><td><strong>Code Security Audit Pipeline</strong> — Full GitHub Actions workflow: Semgrep scan → GLM 5.2 review → PR comment. Prompt engineering for security audit, false positive reduction, batch processing for 500+ findings, cost analysis.</td></tr>
+              <tr><td><strong>6.</strong></td><td><strong>Multi-User API Serving</strong> — OpenAI-compatible API, rate limiting (nginx), auth (API keys/JWT/Cloudflare Tunnel), load balancing, queue management for burst traffic.</td></tr>
+              <tr><td><strong>7.</strong></td><td><strong>Troubleshooting — 20+ Errors</strong> — Each with symptom, root cause, and verified fix: OOM, NCCL timeout, trust_remote_code, re-download on restart, FP8 compatibility, multi-GPU NCCL hangs, slow cold start.</td></tr>
+              <tr><td><strong>8.</strong></td><td><strong>Monitoring & Maintenance</strong> — Prometheus metrics, Grafana dashboards, alerting rules, log rotation (vLLM ~100 MB/day), zero-downtime model updates.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="pricing">
+      <div class="container" style="text-align:center;">
+        <h2>The Complete Manual</h2>
+        <div class="price-block">
+          <p class="badge badge-green" style="margin-bottom:12px;">Launch Special — $10 Off</p>
+          <h2 style="font-size:1.25rem;margin:0 0 4px;">GLM 5.2 Production Manual</h2>
+          <p style="color:var(--text-secondary);font-size:.93rem;margin-bottom:12px;">8 chapters · 40+ pages · vLLM/SGLang configs · CI/CD pipeline · 20+ error fixes</p>
+          <div class="price"><span style="text-decoration:line-through;color:var(--gray-500);font-size:1.8rem;font-weight:400;">$29</span> <span style="color:var(--google-green);">$19</span></div>
+          <div class="price-note">$10 off applied at checkout. One-time. Lifetime updates. No DRM. <span style="color:var(--accent);">· tax included</span></div>
+          <button class="btn-buy paddle-btn" data-price-id="pri_01kwa688rn0ec98phj2tqgw2yr">Get the Manual — $19</button>
+          <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;margin-bottom:0;">&#128274; 30-day money-back guarantee — try it risk-free, full refund if it doesn't save you time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>What This is NOT</h2>
+        <div class="anti-grid">
+          <div class="anti-item"><strong>Not "theory" or "best practices" fluff</strong><p>Every config is a command we ran. Every error fix is a screen we stared at. No hand-waving.</p></div>
+          <div class="anti-item"><strong>Not GLM 101 or introductory ML content</strong><p>You already know what MoE and KV cache mean. This is for engineers who want to deploy, not learn concepts.</p></div>
+          <div class="anti-item"><strong>Not for Windows or Intel Mac users</strong><p>Linux deployment on NVIDIA hardware. macOS coverage for llama.cpp experimentation only.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Frequently Asked Questions</h2>
+        <div class="faq-list">
+          <details class="faq-item"><summary>What if GLM 5.2 gets a major update?</summary><div class="faq-answer"><p>Free updates for all GLM 5.x releases. If a major 6.0 breaks compatibility, we'll publish a new edition at a discounted upgrade price. The manual includes a model update workflow (Ch.8) that works for any version.</p></div></details>
+          <details class="faq-item"><summary>Do I need to own 8×H200 to use this manual?</summary><div class="faq-answer"><p>No. The manual covers the full spectrum: 4×RTX 4090 GGUF → 4×H100 FP8 → 8×H200 FP8. You can test GLM 5.2 on consumer hardware (2-5 tok/s) before renting cloud GPUs. Ch.3 includes a self-host vs API break-even calculator so you know your economics before spending.</p></div></details>
+          <details class="faq-item"><summary>Is this an official guide from Z.ai?</summary><div class="faq-answer"><p>No. This is an independent community guide. Not affiliated with Z.ai or Tsinghua University. Written by engineers who deployed GLM 5.2 from first principles — the model was open-sourced 14 days ago and has no official production documentation.</p></div></details>
+          <details class="faq-item"><summary>How do I access my download?</summary><div class="faq-answer"><p>Immediate download after purchase. Returning buyers: order confirmation email or the <a href="https://customer-portal.paddle.com/cpl_01ktyfrh42qnkmgvx3gxm1y03g" target="_blank" rel="noopener">Paddle customer portal</a>.</p></div></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script>
+    document.querySelectorAll('.paddle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var priceId = this.getAttribute('data-price-id');
+        Paddle.Checkout.open({
+          items: [{ priceId: priceId, quantity: 1 }],
+          discountId: 'dsc_01kwa69jtn87kshykrghqtebj2'
+        });
+      });
+    });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+</body>
+</html>

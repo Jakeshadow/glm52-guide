@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLM 5.2 FAQ — Hardware, License, Self-Hosting Questions</title>
+  <meta name="description" content="GLM 5.2 deployment FAQ — hardware requirements, MIT license commercial use, vLLM vs SGLang, multi-GPU setup, Ascend compatibility.">
+  <meta property="og:title" content="GLM 5.2 FAQ — Hardware, License, Self-Hosting">
+  <meta property="og:description" content="GLM 5.2 deployment FAQ — hardware, license, multi-GPU, Ascend, vLLM vs SGLang.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://glm52.dev/faq/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/faq/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"Can I run GLM 5.2 on a single GPU?","acceptedAnswer":{"@type":"Answer","text":"FP8 requires ~372 GB VRAM — you need 4×H100 minimum. Q4_K_M GGUF on 4×RTX 4090 gets 2-5 tok/s for experimentation only."}},
+      {"@type":"Question","name":"Is the MIT license safe for commercial use?","acceptedAnswer":{"@type":"Answer","text":"Yes. No use-based restrictions, no downstream propagation. Unlike DeepSeek's custom license, your legal team won't flag it."}},
+      {"@type":"Question","name":"Do I need NVIDIA GPUs, or can I use Ascend?","acceptedAnswer":{"@type":"Answer","text":"Inference works on NVIDIA GPUs via vLLM and SGLang today. Ascend inference support is in development but not production-ready."}},
+      {"@type":"Question","name":"What's the difference between vLLM and SGLang for GLM 5.2?","acceptedAnswer":{"@type":"Answer","text":"vLLM has broader ecosystem support and was first with GLM 5.2 Day-0 support. SGLang's RadixAttention provides 15-30% better throughput for long-context workloads via mixed chunk prefill. Both are production-ready."}}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>GLM 5.2 FAQ</h1>
+        <p class="hero-subtitle">Hardware, license, deployment, and comparison questions — from our testing and community discussion.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Hardware & Deployment</h2>
+        <div class="faq-list">
+          <details class="faq-item"><summary>Can I run GLM 5.2 on a single GPU?</summary><div class="faq-answer"><p>FP8 requires ~372 GB VRAM — you need 4×H100 (80GB each) minimum. 8×H200 is the recommended production setup. With Q4_K_M GGUF and CPU offloading, you can run on 4×RTX 4090 (96GB total + 128GB RAM) at 2-5 tok/s — usable for testing, not production.</p></div></details>
+          <details class="faq-item"><summary>Do I need NVIDIA GPUs, or can I use Ascend/AMD?</summary><div class="faq-answer"><p>GLM 5.2 was trained on Huawei Ascend, but <strong>inference today works on NVIDIA GPUs</strong> via vLLM and SGLang. Ascend inference support is in development but not production-ready. AMD ROCm support is not yet available for GLM 5.2's custom architecture.</p></div></details>
+          <details class="faq-item"><summary>What's the minimum hardware for production serving?</summary><div class="faq-answer"><p>4×H100 (80GB) with FP8 quantization. This gives you ~128K context with 4-8 concurrent requests at 25-50 tok/s per user. For 1M context at production throughput, 8×H200 is the realistic minimum.</p></div></details>
+          <details class="faq-item"><summary>How long does model download take?</summary><div class="faq-answer"><p>FP8 weights are ~744 GB. On a 10 Gbps connection: ~40 minutes. On 1 Gbps: ~2 hours. The model is pulled from HuggingFace Hub on first vLLM start — use <code>huggingface-cli download</code> to pre-cache for faster restarts.</p></div></details>
+        </div>
+
+        <h2 style="margin-top:40px;">License & Commercial Use</h2>
+        <div class="faq-list">
+          <details class="faq-item"><summary>Is GLM 5.2 really MIT? Can I use it commercially?</summary><div class="faq-answer"><p>Yes. Full MIT license — no use-based restrictions, no downstream propagation requirements. Unlike DeepSeek's custom license (which has Paragraph 5 use-based restrictions flagged by Black Duck), GLM 5.2's MIT is the most permissive open-source license available. Deploy it, embed it, redistribute it — no legal review needed.</p></div></details>
+          <details class="faq-item"><summary>Can I fine-tune GLM 5.2 and sell the resulting model?</summary><div class="faq-answer"><p>Yes. MIT license permits derivative works for commercial use without restriction. Note: fine-tuning a 744B model is a significant undertaking — this guide covers inference and serving, not training.</p></div></details>
+        </div>
+
+        <h2 style="margin-top:40px;">Performance & Comparisons</h2>
+        <div class="faq-list">
+          <details class="faq-item"><summary>vLLM vs SGLang — which should I use?</summary><div class="faq-answer"><p>vLLM: broader ecosystem, Day-0 GLM 5.2 support, more community examples. SGLang: RadixAttention provides 15-30% better throughput for long-context workloads via mixed chunk prefill. If your workload is >32K context, try SGLang. Both are production-ready.</p></div></details>
+          <details class="faq-item"><summary>How does GLM 5.2 compare to DeepSeek V3 for self-hosting?</summary><div class="faq-answer"><p>Similar VRAM requirements (both ~370GB FP8). GLM 5.2 advantages: MIT license (no legal review), 1M native context, #1 Code Arena. DeepSeek advantage: larger ecosystem, more community deployment examples. If commercial deployment without license review matters, GLM 5.2 is the clear choice.</p></div></details>
+          <details class="faq-item"><summary>Is self-hosting cheaper than using Z.ai's API?</summary><div class="faq-answer"><p>Z.ai API: $30-80/month (Pro/Max plans). Self-hosting: 8×H200 rental ~$25-35/hr on cloud. For continuous serving, self-hosting is more expensive unless you own hardware. For bursty CI/CD workloads (code security pipeline), self-hosting can be cheaper because you only pay when running. The manual includes a break-even calculator.</p></div></details>
+        </div>
+
+        <h2 style="margin-top:40px;">Production & Security</h2>
+        <div class="faq-list">
+          <details class="faq-item"><summary>Is GLM 5.2 safe to use in CI/CD for code review?</summary><div class="faq-answer"><p>The model itself runs on your infrastructure — no code leaves your network. The security concern is prompt injection: a malicious file could attempt to manipulate GLM 5.2's output. The manual covers input sanitization, sandboxed runners, and prompt engineering for security audit that minimizes injection risk.</p></div></details>
+          <details class="faq-item"><summary>Are there any known production deployments of GLM 5.2?</summary><div class="faq-answer"><p>No. GLM 5.2 was open-sourced June 16, 2026 — 14 days ago as of this writing. No teams have publicly documented production deployments. This guide is built from first-principles testing on 8×H200 and 4×H100. When production case studies emerge, we'll update the guide.</p></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="text-align:center;">
+        <h2>Ready to Deploy?</h2>
+        <p class="section-lead">The free guides cover installation and basics. The manual covers everything else — 20+ error fixes, CI/CD pipeline, multi-GPU NCCL tuning.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $19</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+</body>
+</html>
