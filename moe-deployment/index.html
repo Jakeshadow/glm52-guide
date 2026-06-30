@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLM 5.2 Multi-GPU MoE Deployment — vLLM/SGLang Config & NCCL Tuning</title>
+  <meta name="description" content="Deploy 744B MoE GLM 5.2 on multi-GPU — tensor parallelism, expert parallelism, NCCL tuning, 4×4090 reality check, vLLM vs SGLang config comparison.">
+  <meta property="og:title" content="GLM 5.2 Multi-GPU MoE Deployment — vLLM/SGLang & NCCL Tuning">
+  <meta property="og:description" content="Deploy 744B MoE on multi-GPU — tensor/expert parallelism, NCCL tuning, consumer GPU reality check.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://glm52.dev/moe-deployment/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GLM 5.2 Multi-GPU MoE Deployment">
+  <meta name="twitter:description" content="744B MoE multi-GPU deployment — vLLM, SGLang, llama.cpp GGUF, NCCL tuning.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/moe-deployment/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "GLM 5.2 Multi-GPU MoE Deployment Guide",
+    "description": "Deploy GLM 5.2 744B MoE on multi-GPU systems with vLLM, SGLang, and llama.cpp. NCCL tuning and consumer GPU reality check.",
+    "proficiencyLevel": "Advanced"
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">Free Guide — Pillar 2</p>
+        <h1>744B MoE. 8 GPUs. One Endpoint.</h1>
+        <p class="hero-subtitle">Tensor parallelism isn't enough for MoE. Here's how to configure vLLM and SGLang for GLM 5.2's expert routing — with real numbers from 8×H200 and 4×H100.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>MoE Architecture: Why It Changes Deployment</h2>
+        <p>GLM 5.2 has 744B total parameters but only ~40B are active per forward pass. Each token is routed to a subset of "experts." This means your VRAM holds the full model, but compute is roughly equivalent to a 40B dense model per token.</p>
+        <p>The deployment implication: <strong>you're paying VRAM for 744B but getting latency of ~40B.</strong> That's the tradeoff. MoE means heavier GPU demand but better inference speed at a given quality level.</p>
+
+        <h3 style="margin-top:28px;">GPU Sizing: What You Actually Need</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Quantization</th><th>Disk</th><th>VRAM (total)</th><th>Minimum GPUs</th><th>Example Config</th></tr></thead>
+            <tbody>
+              <tr><td><strong>FP16</strong></td><td>~1.4 TB</td><td>~744 GB</td><td>8×H200</td><td>Production serving, &lt;50 tok/s per user</td></tr>
+              <tr><td><strong>FP8</strong></td><td>~744 GB</td><td>~372 GB</td><td>4×H100 (80GB each)</td><td>Production, &lt;100 tok/s per user</td></tr>
+              <tr><td><strong>Q4_K_M GGUF</strong></td><td>~220 GB</td><td>~220 GB + CPU offload</td><td>4×RTX 4090 (24GB each) + 128GB RAM</td><td>Experimentation only, 2-5 tok/s</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <strong>Reality check:</strong> 4×RTX 4090 can load GLM 5.2 with heavy quantization and CPU offloading. You'll get 2-5 tok/s — not usable for interactive chat, but enough to test prompts, verify output quality, and experiment before committing to cloud GPU spend. This is your fast path to "does GLM 5.2 work for my use case" without $50/hr H100 rental.
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>vLLM Configuration for GLM 5.2</h2>
+        <p>Every flag that matters for production MoE deployment:</p>
+        <pre><code class="language-bash">vllm serve zai-org/GLM-5.2-FP8 \
+  --trust-remote-code \
+  --tensor-parallel-size 8 \
+  --gpu-memory-utilization 0.90 \
+  --max-model-len 32000 \
+  --max-num-seqs 16 \
+  --kv-cache-dtype fp8 \
+  --enable-prefix-caching \
+  --max-num-batched-tokens 65536 \
+  --host 0.0.0.0 \
+  --port 8000</code></pre>
+        <div class="table-wrap" style="margin-top:16px;">
+          <table>
+            <thead><tr><th>Flag</th><th>Why for MoE</th></tr></thead>
+            <tbody>
+              <tr><td><code>--tensor-parallel-size 8</code></td><td>Split each expert across all GPUs. For 744B, you need at least 4.</td></tr>
+              <tr><td><code>--max-num-seqs 16</code></td><td>Concurrent requests. Higher = better throughput, higher VRAM. MoE models can handle more concurrency than dense at same batch size because only ~40B active params per token.</td></tr>
+              <tr><td><code>--max-num-batched-tokens 65536</code></td><td>Max tokens in flight. For 1M context, this needs tuning — the manual covers the tradeoff curve.</td></tr>
+              <tr><td><code>--enable-prefix-caching</code></td><td>MoE system prompts are long (coding tasks, security audits). This saves repeated encoding.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>SGLang Configuration</h2>
+        <p>SGLang's RadixAttention provides additional cache efficiency for MoE models. Equivalent config:</p>
+        <pre><code class="language-bash">python -m sglang.launch_server \
+  --model-path zai-org/GLM-5.2-FP8 \
+  --trust-remote-code \
+  --tp-size 8 \
+  --mem-fraction-static 0.90 \
+  --context-length 32000 \
+  --enable-mixed-chunk \
+  --host 0.0.0.0 \
+  --port 8000</code></pre>
+        <p><code>--enable-mixed-chunk</code> is SGLang's key MoE optimization — mixes prefill and decode chunks to keep all GPUs busy during expert routing. For long-context workloads, this can improve throughput by 15-30% vs standard vLLM.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>NCCL Tuning for Multi-GPU</h2>
+        <p>Multi-GPU inference lives or dies on NCCL configuration. The defaults are wrong for most setups.</p>
+        <pre><code class="language-bash"># Single-node 8-GPU (typical H200 box)
+export NCCL_SOCKET_IFNAME=lo
+export NCCL_IB_DISABLE=1
+export NCCL_P2P_DISABLE=0
+export NCCL_P2P_LEVEL=NVL
+
+# Multi-node (rare for inference, common for experimentation)
+export NCCL_SOCKET_IFNAME=ib0
+export NCCL_IB_DISABLE=0
+export NCCL_NET_GDR_LEVEL=5</code></pre>
+        <div class="note">
+          <strong>Don't guess with NCCL.</strong> <code>NCCL_P2P_DISABLE=1</code> is a common troubleshooting crutch — it works, but disables GPU-direct communication and cuts throughput by 40-60%. The manual includes NCCL diagnostics and per-hardware tuning matrices for 4/8 GPU setups.
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>llama.cpp GGUF: The Budget Option</h2>
+        <p>For developers who want to test GLM 5.2 without $50/hr cloud GPU rental:</p>
+        <pre><code class="language-bash"># Download Q4_K_M GGUF (~220 GB)
+# Convert from HF: see manual for conversion script
+
+./llama.cpp/build/bin/llama-server \
+  -m glm52-Q4_K_M.gguf \
+  --n-gpu-layers 48 \
+  --tensor-split 24,24,24,24 \
+  --ctx-size 8192 \
+  --host 0.0.0.0 \
+  --port 8000</code></pre>
+        <p>4×RTX 4090 (24GB each, 96GB total) + 128GB system RAM: model loads, runs at 2-5 tok/s. This is your proof-of-concept rig — not production, but enough to validate whether GLM 5.2 works for your use case before renting H100s.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="text-align:center;">
+        <h2>This Page Covers the Basics. The Manual Goes Deeper.</h2>
+        <p class="section-lead">Expert parallelism configurations, NCCL tuning matrices for 8 hardware setups, SGLang vs vLLM benchmark comparisons, and troubleshooting 20+ multi-GPU errors — all in the production manual.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $19</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+</body>
+</html>

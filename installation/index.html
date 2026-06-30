@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install GLM 5.2 — vLLM Setup & First Inference in 10 Minutes</title>
+  <meta name="description" content="Install GLM 5.2 with vLLM — pip install, model download, first inference. Hardware requirements, FP8 setup, verify with curl. Copy-paste ready.">
+  <meta property="og:title" content="Install GLM 5.2 — vLLM Setup in 10 Minutes">
+  <meta property="og:description" content="Install GLM 5.2 with vLLM — hardware requirements, FP8 setup, first inference. Copy-paste ready commands.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://glm52.dev/installation/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Install GLM 5.2 — vLLM Setup in 10 Minutes">
+  <meta name="twitter:description" content="Hardware requirements, FP8 setup, first inference. Copy-paste ready.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/installation/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Install GLM 5.2 with vLLM in 10 Minutes",
+    "description": "Hardware requirements, FP8 setup, and first inference for GLM 5.2.",
+    "proficiencyLevel": "Intermediate"
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">Free Guide</p>
+        <h1>Install GLM 5.2 &amp; Run Your First Inference</h1>
+        <p class="hero-subtitle">10 minutes from zero to working GLM 5.2 endpoint. vLLM + FP8 on 8×H200.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Prerequisites</h2>
+        <div class="compare-grid">
+          <div>
+            <h3>You need</h3>
+            <ul>
+              <li>8×H200 (recommended) or 4×H100 (minimum for FP8)</li>
+              <li>CUDA 12.4+ and NVIDIA driver 550+</li>
+              <li>~750 GB free disk (for FP8 weights)</li>
+              <li>Python 3.10+ and pip</li>
+            </ul>
+          </div>
+          <div>
+            <h3>You don't need</h3>
+            <ul>
+              <li>Docker (vLLM runs natively or containerized — both work)</li>
+              <li>Paid API keys — it's your hardware, your model</li>
+              <li>Model fine-tuning experience</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Step 1: Install vLLM</h2>
+        <pre><code class="language-bash">pip install vllm>=0.23.0</code></pre>
+        <p>vLLM 0.23.0+ includes native GLM 5.2 support with FP8 KV cache and IndexShare attention. Verify:</p>
+        <pre><code class="language-bash">python -c "import vllm; print(vllm.__version__)"</code></pre>
+        <div class="note">
+          <strong>GLM 5.2 requires <code>--trust-remote-code</code></strong> — the model's custom architecture isn't in upstream transformers yet. vLLM handles this automatically when you pass the flag, but it's a security consideration for some environments. The manual covers the trust boundary tradeoff in detail.
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Step 2: Start the vLLM Server</h2>
+        <pre><code class="language-bash">vllm serve zai-org/GLM-5.2-FP8 \
+  --trust-remote-code \
+  --tensor-parallel-size 8 \
+  --gpu-memory-utilization 0.90 \
+  --max-model-len 32000 \
+  --max-num-seqs 8 \
+  --kv-cache-dtype fp8 \
+  --enable-prefix-caching \
+  --host 0.0.0.0 \
+  --port 8000</code></pre>
+        <p>What each flag does:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Flag</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><code>--tensor-parallel-size 8</code></td><td>Splits model across 8 GPUs. Required for 744B model.</td></tr>
+              <tr><td><code>--gpu-memory-utilization 0.90</code></td><td>Use 90% of GPU VRAM. Start at 0.85 and increase in 0.01 steps if stable.</td></tr>
+              <tr><td><code>--max-model-len 32000</code></td><td>Max context length. Start conservative — every doubling balloons KV cache.</td></tr>
+              <tr><td><code>--kv-cache-dtype fp8</code></td><td>Halves KV cache VRAM vs FP16. H100/H200 native support.</td></tr>
+              <tr><td><code>--enable-prefix-caching</code></td><td>Caches shared prefixes (system prompts). Saves VRAM on repeated queries.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Step 3: Verify It's Working</h2>
+        <pre><code class="language-bash">curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "zai-org/GLM-5.2-FP8",
+    "messages": [{"role": "user", "content": "Explain MoE routing in one sentence."}],
+    "max_tokens": 100
+  }'</code></pre>
+        <p>Expected: JSON response with generated text, within 200ms TTFT on 8×H200.</p>
+        <p>Cold start note: first load compiles CUDA graphs — allow 5-10 minutes. Subsequent restarts are faster.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Troubleshooting: If It Didn't Work</h2>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>OOM at startup — "CUDA out of memory"</summary>
+            <div class="faq-answer">
+              <p>Drop <code>--gpu-memory-utilization</code> to 0.85. Reduce <code>--max-model-len</code> to 8192. Check that all GPUs are visible: <code>nvidia-smi</code>. If one GPU is missing, check NCCL configuration.</p>
+            </div>
+          </details>
+          <details class="faq-item">
+            <summary>"trust_remote_code" error</summary>
+            <div class="faq-answer">
+              <p>GLM 5.2's architecture requires custom code. Always pass <code>--trust-remote-code</code>. In production, review the model code first — the manual includes a security review checklist for this specific concern.</p>
+            </div>
+          </details>
+          <details class="faq-item">
+            <summary>Model re-downloads on every restart</summary>
+            <div class="faq-answer">
+              <p>vLLM caches models in <code>~/.cache/huggingface/hub/</code>. If your container doesn't persist this volume, mount it. The manual's docker-compose includes volume persistence for all model caches.</p>
+            </div>
+          </details>
+          <details class="faq-item">
+            <summary>NCCL timeout on multi-GPU</summary>
+            <div class="faq-answer">
+              <p>Multi-node setups: set <code>NCCL_SOCKET_IFNAME</code> to your high-speed interface (e.g., <code>ib0</code> for InfiniBand). Single-node multi-GPU: try <code>NCCL_P2P_DISABLE=1</code> as a diagnostic (but don't leave it on in production — it kills throughput).</p>
+            </div>
+          </details>
+        </div>
+        <div class="note" style="margin-top:20px;">
+          <strong>Still stuck?</strong> The <a href="/production-guide/">production manual</a> covers 20+ verified error fixes — OOM, NCCL hangs, tokenizer mismatches, FP8 compatibility, driver update safety, and slow cold start diagnostics. <a href="/production-guide/">Get the manual →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="text-align:center;">
+        <h2>Next: Optimize for Your Workload</h2>
+        <p class="section-lead">GLM 5.2 is running. Now dig into what matters for your use case.</p>
+        <div class="reasons-grid" style="text-align:left;">
+          <div class="reason-card">
+            <h3>1M Context Setup</h3>
+            <p>KV cache sizing, OOM prevention, hardware tables for long-context workloads.</p>
+            <p><a href="/1m-context/" style="color:var(--accent);font-weight:500;">1M context guide →</a></p>
+          </div>
+          <div class="reason-card">
+            <h3>Multi-GPU Deep Dive</h3>
+            <p>Expert parallelism, NCCL tuning, quantization strategy — everything beyond tensor parallelism.</p>
+            <p><a href="/moe-deployment/" style="color:var(--accent);font-weight:500;">MoE deployment →</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+</body>
+</html>

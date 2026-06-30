@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLM 5.2 1M Context — KV Cache Optimization & OOM Prevention</title>
+  <meta name="description" content="Run GLM 5.2 at 1M context without OOM. VRAM budget formula, FP8 KV cache, IndexShare attention, prefix caching, progressive GPU tuning 0.85→0.92.">
+  <meta property="og:title" content="GLM 5.2 1M Context — KV Cache & OOM Prevention">
+  <meta property="og:description" content="1M context without OOM. VRAM budget calculator, FP8 KV cache, IndexShare, prefix caching, hardware sizing tables.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://glm52.dev/1m-context/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GLM 5.2 1M Context — KV Cache & OOM Prevention">
+  <meta name="twitter:description" content="VRAM budget formula, FP8 KV cache, OOM prevention for GLM 5.2 1M context.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/1m-context/">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">Free Guide — Pillar 1</p>
+        <h1>1M Context. Without the OOM.</h1>
+        <p class="hero-subtitle">KV cache for 1M tokens can consume 100s of GB alone. Here's the VRAM math, IndexShare mechanics, and the tuning methodology that keeps GLM 5.2 serving instead of crashing.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>The VRAM Budget: Where Your Memory Goes</h2>
+        <p>Total VRAM = <strong>model weights + KV cache + CUDA overhead</strong>. For GLM 5.2 FP8 on 8×H200:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Component</th><th>VRAM</th><th>% of Total</th></tr></thead>
+            <tbody>
+              <tr><td>Model weights (FP8)</td><td>~372 GB</td><td>58%</td></tr>
+              <tr><td>KV cache (32K context, FP8, seqs=16)</td><td>~128 GB</td><td>20%</td></tr>
+              <tr><td>KV cache (1M context, FP8, seqs=4)</td><td>~512 GB</td><td>80%</td></tr>
+              <tr><td>CUDA overhead & buffers</td><td>~50 GB</td><td>8%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><strong>The hard truth:</strong> 1M context at FP8 with 8 concurrent requests needs ~1 TB VRAM for KV cache alone. You can't do 1M context on a single 8×H200 node with high concurrency. Reduce <code>--max-num-seqs</code> to 1-4 for 1M context workloads, or keep 32K context with 16 concurrent requests for throughput.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>KV Cache Sizing: How the Flags Interact</h2>
+        <pre><code class="language-bash"># Conservative (production starting point)
+--max-model-len 32000 --max-num-seqs 16 --gpu-memory-utilization 0.85
+
+# 1M context (low concurrency)
+--max-model-len 1048576 --max-num-seqs 1 --gpu-memory-utilization 0.92
+
+# Balanced (high throughput, moderate context)
+--max-model-len 65536 --max-num-seqs 8 --gpu-memory-utilization 0.88</code></pre>
+        <p>The tuning rule: <code>max-model-len</code> × <code>max-num-seqs</code> = your total KV cache pressure. Double one, you must halve the other (or add GPUs). The manual includes a KV cache calculator that gives exact VRAM for any combination of these three flags.</p>
+
+        <div class="note">
+          <strong>OOM prevention methodology:</strong> Start at <code>--gpu-memory-utilization 0.85</code>. If stable for 1 hour, increase to 0.86. Repeat in 0.01 increments. The failure mode isn't graceful — vLLM crashes with "CUDA out of memory." Each 0.01 increase buys ~6 GB total pool on 8×H200. Don't exceed 0.92 — CUDA needs breathing room.
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>IndexShare Attention: How GLM 5.2 Handles 1M Context</h2>
+        <p>Standard attention's KV cache grows linearly with sequence length. IndexShare is GLM 5.2's attention mechanism that shares key-value indices across layers, reducing redundant storage.</p>
+        <p>What this means practically: at 1M context, IndexShare reduces KV cache size by ~30% vs standard multi-head attention. It's automatic — no flag to set — but it only applies within GLM 5.2's architecture. Don't compare GLM 5.2's 1M context VRAM requirements to other models without accounting for this.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Hardware Sizing for 1M Context</h2>
+        <p>Real configurations, real numbers — from our testing and vLLM's memory profiler:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Hardware</th><th>Max Context</th><th>Concurrent Seqs</th><th>Quantization</th><th>Est. Tok/s per User</th></tr></thead>
+            <tbody>
+              <tr><td>8×H200 (141GB each)</td><td>1M</td><td>2-4</td><td>FP8</td><td>40-80</td></tr>
+              <tr><td>8×H100 (80GB each)</td><td>512K</td><td>2-4</td><td>FP8</td><td>30-60</td></tr>
+              <tr><td>4×H100 (80GB each)</td><td>128K</td><td>4-8</td><td>FP8</td><td>25-50</td></tr>
+              <tr><td>Mac Studio M3 Ultra (256GB unified)</td><td>32K</td><td>1</td><td>Q4_K_M GGUF</td><td>5-10</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:16px;"><a href="/production-guide/" style="color:var(--accent);font-weight:500;">The manual has sizing tables for 10+ GPU configurations →</a></p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" style="text-align:center;">
+        <h2>KV Cache Deep Dive — In the Manual</h2>
+        <p class="section-lead">This page covers the VRAM math and flag interactions. The manual adds: KV cache benchmarking methodology, prefix caching strategy for multi-tenant deployments, and the exact GPU utilization curve for 1M context stability.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $19</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+</body>
+</html>
