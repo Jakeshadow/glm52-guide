@@ -176,21 +176,24 @@
     </section>
 
     <section class="section section-alt">
-      <div class="container" style="text-align:center;">
-        <h2>Next: Optimize for Your Workload</h2>
-        <p class="section-lead">GLM 5.2 is running. Now dig into what matters for your use case.</p>
-        <div class="reasons-grid" style="text-align:left;">
-          <div class="reason-card">
-            <h3>1M Context Setup</h3>
-            <p>KV cache sizing, OOM prevention, hardware tables for long-context workloads.</p>
-            <p><a href="/1m-context/" style="color:var(--accent);font-weight:500;">1M context guide →</a></p>
-          </div>
-          <div class="reason-card">
-            <h3>Multi-GPU Deep Dive</h3>
-            <p>Expert parallelism, NCCL tuning, quantization strategy — everything beyond tensor parallelism.</p>
-            <p><a href="/moe-deployment/" style="color:var(--accent);font-weight:500;">MoE deployment →</a></p>
-          </div>
+      <div class="container">
+        <h2>GLM 5.2 is Serving. Now What?</h2>
+        <p>You just solved 4 common errors. The manual covers 20 — each with symptom, root cause, verified fix, and prevention. Plus the production stack that keeps it running.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>This Page (Free)</th><th>Production Manual Ch.1 + Ch.7</th></tr></thead>
+            <tbody>
+              <tr><td>One-shot <code>vllm serve</code> command</td><td>Production docker-compose.yml with health checks, resource limits, GPU affinity, persistent volumes</td></tr>
+              <tr><td>4 common errors (OOM, trust_remote_code, re-download, NCCL timeout)</td><td>20 verified errors — each with symptom, root cause, verified fix, and prevention</td></tr>
+              <tr><td>Basic nginx mention</td><td>Full nginx config: TLS termination, rate limiting, JWT auth, access logging in JSON</td></tr>
+              <tr><td><em>Not covered</em></td><td>Systemd unit with reboot test, pre-deployment checklist, log rotation, zero-downtime updates</td></tr>
+              <tr><td><em>Not covered</em></td><td>Multi-node NCCL debug flowcharts, GPU memory leak detection scripts, driver update safe procedure</td></tr>
+            </tbody>
+          </table>
         </div>
+        <p style="margin-top:16px;">You got it running in 10 minutes. Keeping it running at 3am when NCCL hangs and the disk is full — that's what the manual is for.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $29</a>
+        <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;">30-day money-back guarantee. Full refund if the error fixes don't solve your problem.</p>
       </div>
     </section>
   </main>

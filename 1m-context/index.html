@@ -116,10 +116,23 @@
     </section>
 
     <section class="section">
-      <div class="container" style="text-align:center;">
-        <h2>KV Cache Deep Dive — In the Manual</h2>
-        <p class="section-lead">This page covers the VRAM math and flag interactions. The manual adds: KV cache benchmarking methodology, prefix caching strategy for multi-tenant deployments, and the exact GPU utilization curve for 1M context stability.</p>
+      <div class="container">
+        <h2>This Page Covers the Math. The Manual Gives You the Playbook.</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>This Page (Free)</th><th>Production Manual Ch.2</th></tr></thead>
+            <tbody>
+              <tr><td>VRAM formula with IndexShare dimensions</td><td>Full memory profile breakdown: weights + KV cache + activations + overhead, per GPU tier</td></tr>
+              <tr><td>Basic KV cache sizing table (FP16/FP8)</td><td>Hardware sizing tables for 10+ GPU configurations — 4×H100 through 8×H200</td></tr>
+              <tr><td>"Here's what IndexShare does"</td><td>KV cache benchmarking methodology, prefix caching strategy, multi-tenant cache sharing</td></tr>
+              <tr><td>OOM basics — reduce context, reduce users</td><td>Complete OOM prevention workflow: progressive tuning, downgrade paths for every GPU tier</td></tr>
+              <tr><td><em>You calculated: "I need 652 GB but only have 320 GB."</em></td><td>Downgrade strategy: which parameters to sacrifice first, in what order, with what impact</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:16px;">You've done the math. You know your VRAM budget doesn't add up. The manual tells you exactly what to trade off — and in what order — to make it work without guesswork.</p>
         <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $29</a>
+        <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;">30-day money-back guarantee. If the tuning methodology doesn't work in your environment, full refund.</p>
       </div>
     </section>
   </main>
