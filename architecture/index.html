@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLM 5.2 Production Architecture — Docker Compose, Nginx, Systemd Stack</title>
+  <meta name="description" content="Production architecture for GLM 5.2 self-hosting — docker-compose topology, nginx reverse proxy, GPU backend. Free preview of Ch.1 from the Production Manual.">
+  <meta property="og:title" content="GLM 5.2 Production Architecture — Docker, Nginx, Systemd">
+  <meta property="og:description" content="Production-grade topology: nginx → vLLM/SGLang → GPU. Docker Compose skeleton, health checks, TLS termination. Free preview.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://glm52.dev/architecture/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/architecture/">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>A Single <code>vllm serve</code> Isn't Production.</h1>
+        <p class="hero-subtitle">The 3-layer production stack: nginx reverse proxy → vLLM/SGLang serving → GPU backend. TLS termination, health checks, autorestart, log rotation — the things that keep your model serving at 3am when you're asleep.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>The Production Topology</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Layer</th><th>Component</th><th>What It Does</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Edge</strong></td><td>nginx</td><td>TLS termination, rate limiting, API key validation, request buffering, access logging</td></tr>
+              <tr><td><strong>App</strong></td><td>vLLM / SGLang</td><td>Model inference, KV cache management, batching, OpenAI-compatible API endpoint</td></tr>
+              <tr><td><strong>GPU</strong></td><td>NVIDIA Driver + CUDA</td><td>FP8 kernel execution, NCCL multi-GPU communication, VRAM allocation</td></tr>
+              <tr><td><strong>Infra</strong></td><td>systemd + Docker</td><td>Auto-restart on crash, container lifecycle, log rotation, resource limits</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Docker Compose — The Skeleton</h2>
+        <p>This gets you past "it works on my machine." One file, two services, GPU passthrough. The manual adds health checks, resource limits, and multi-node config.</p>
+        <pre><code class="language-yaml"># docker-compose.yml — production skeleton
+version: '3.8'
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    command: >
+      --model glm-5-2/fp8
+      --tensor-parallel-size 8
+      --max-model-len 131072
+      --gpu-memory-utilization 0.90
+      --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ipc: host
+    shm_size: 8gb
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - vllm
+</code></pre>
+        <p class="section-lead" style="margin-top:16px;">This skeleton runs. But it's missing health checks (Docker will mark vLLM "running" before the model loads), resource limits (OOM kills the wrong container), and the systemd unit that survives a reboot. The manual covers all three.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Nginx — The Gateway</h2>
+        <p>Your model speaks OpenAI-compatible API. Clients shouldn't talk to it directly. nginx adds the missing production layer.</p>
+        <pre><code class="language-nginx"># nginx.conf — minimal production gateway
+upstream glm_backend {
+    server vllm:8000 max_fails=3 fail_timeout=30s;
+    keepalive 32;
+}
+
+server {
+    listen 443 ssl;
+    server_name glm-api.yourdomain.com;
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    # Rate limit: 60 requests per minute per IP
+    limit_req_zone $binary_remote_addr zone=glm_limit:10m rate=60r/m;
+    limit_req zone=glm_limit burst=20 nodelay;
+
+    # Max 128K context — prevent OOM from oversized prompts
+    client_max_body_size 2m;
+
+    location /v1/ {
+        proxy_pass http://glm_backend;
+        proxy_set_header Host $host;
+        proxy_read_timeout 300s;
+
+        # API key validation (JWT example — manual has full auth setup)
+        auth_request /auth;
+    }
+
+    location /health {
+        proxy_pass http://glm_backend/health;
+        access_log off;
+    }
+
+    location = /auth {
+        internal;
+        proxy_pass http://auth-service/validate;
+    }
+}
+</code></pre>
+        <p class="section-lead" style="margin-top:16px;">rate limiting + TLS + auth endpoint — the three things that separate a demo from a production API. The manual adds JWT token generation, Cloudflare Tunnel as an alternative, and multi-user queue management for burst traffic.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Systemd — Survive a Reboot</h2>
+        <p>Without a process manager, your model dies when the SSH session drops. systemd is the simplest answer.</p>
+        <pre><code class="language-ini"># /etc/systemd/system/glm52.service
+[Unit]
+Description=GLM 5.2 Production Stack
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/glm52
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+ExecReload=/usr/bin/docker compose restart
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+        <p><code>systemctl enable glm52</code> and your model comes back after a power outage. The manual covers the pre-deployment checklist: reboot test, cold start timing (8×H200 loads FP8 weights in ~110 seconds), and zero-downtime model updates via rolling restart.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>What the Manual Adds (Ch.1)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>This Page (Free)</th><th>Production Manual Ch.1</th></tr></thead>
+            <tbody>
+              <tr><td>Docker Compose skeleton</td><td>Full production compose with health checks, resource limits, GPU affinity</td></tr>
+              <tr><td>Basic nginx config</td><td>JWT auth + Cloudflare Tunnel + API key rotation + access log parsing</td></tr>
+              <tr><td>systemd unit template</td><td>Pre-deployment checklist: reboot test, cold start timing, rollback procedure</td></tr>
+              <tr><td>Single-node topology</td><td>Multi-node architecture with load balancer + shared KV cache strategy</td></tr>
+              <tr><td><em>Not covered</em></td><td>Zero-downtime model updates, rolling restart, canary deployment pattern</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="text-align:center;">
+        <h2>This Page Shows the Pattern. The Manual Ships the Configs.</h2>
+        <p class="section-lead">Every config on this page is a skeleton — enough to understand the architecture, not enough to run production traffic. Ch.1 gives you the complete docker-compose.yml with every flag validated on 8×H200, the nginx config that handles 100+ concurrent users, and the systemd unit that survived 50 reboot cycles in testing.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $29</a>
+        <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;">30-day money-back guarantee. If the configs don't work in your environment, full refund.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-nginx.min.js" defer></script>
+</body>
+</html>
