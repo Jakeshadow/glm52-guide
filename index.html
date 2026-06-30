@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Host GLM 5.2 in Production — Free Guide | GLM52.dev</title>
+  <meta name="description" content="Run GLM 5.2 in production — 1M context, 744B MoE, MIT license. vLLM/SGLang config, multi-GPU deployment, KV cache optimization, code security pipeline. Free + paid manual.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <meta property="og:title" content="Self-Host GLM 5.2 in Production — Free Guide">
+  <meta property="og:description" content="Run GLM 5.2 in production — 1M context, 744B MoE, MIT license. vLLM/SGLang config, multi-GPU deployment, code security pipeline.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://glm52.dev/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Self-Host GLM 5.2 in Production — Free Guide">
+  <meta name="twitter:description" content="1M context. 744B MoE. MIT license. Production guide with vLLM/SGLang config and code security pipeline.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "GLM52.dev",
+    "url": "https://glm52.dev/",
+    "description": "Free guide to self-host GLM 5.2 in production — 1M context, 744B MoE, MIT license."
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">Open Source · MIT License · Production-Ready</p>
+        <h1>1M Context. 744B Parameters. MIT License.<br>Now Keep It Running in Production.</h1>
+        <p class="hero-subtitle">GLM 5.2 is the strongest open-weight coding model — beats GPT-5.5 on SWE-bench, #1 on Code Arena. But self-hosting a 744B MoE at 1M context? Nobody's documented that. Until now.</p>
+        <div class="hero-actions">
+          <a href="/installation/" class="btn btn-primary">Start Deploying — Free</a>
+          <a href="/moe-deployment/" class="btn btn-outline">Multi-GPU Setup →</a>
+          <a href="/production-guide/" class="btn btn-outline" style="border-color:var(--accent);color:var(--accent);">Get the Manual — $19</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong>744B</strong> Total Params</div>
+          <div class="hero-stat"><strong>~40B</strong> Active per Forward</div>
+          <div class="hero-stat"><strong>1M</strong> Context Window</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Three Problems Nobody Solved. Until Now.</h2>
+        <p class="section-lead">GLM 5.2 ships with impressive benchmarks. But production deployment is a different story — each of these three walls stops most teams before they start.</p>
+        <div class="reasons-grid">
+          <div class="reason-card">
+            <h3>1. 1M Context Eats Your VRAM Alive</h3>
+            <p>KV cache for 1M tokens can consume 100s of GB alone. Official docs give you a <code>--max-model-len</code> flag. We give you a VRAM budget calculator, FP8 KV cache config, OOM prevention workflow, and hardware sizing tables for 10+ GPU configurations.</p>
+            <p style="margin-top:8px;"><a href="/1m-context/" style="color:var(--accent);font-weight:500;">1M context deep dive →</a></p>
+          </div>
+          <div class="reason-card">
+            <h3>2. 744B MoE Doesn't Fit on One GPU</h3>
+            <p>Tensor parallelism alone isn't enough for MoE. You need expert parallelism, NCCL tuning, and the right quantization. We tested on 4×H100 and 8×H200 — here's every vLLM/SGLang flag that matters and what <code>NCCL_P2P_DISABLE</code> actually does to throughput.</p>
+            <p style="margin-top:8px;"><a href="/moe-deployment/" style="color:var(--accent);font-weight:500;">Multi-GPU deployment →</a></p>
+          </div>
+          <div class="reason-card">
+            <h3>3. No One Knows How to Put It in CI/CD</h3>
+            <p>GLM 5.2 is #1 on Code Arena — but turning benchmark scores into an automated code security pipeline (Semgrep → GLM 5.2 → PR review) requires prompt engineering, batch processing, and false-positive triage that doesn't exist in any public repo.</p>
+            <p style="margin-top:8px;"><a href="/production-guide/" style="color:var(--accent);font-weight:500;">Code security pipeline — in the manual →</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Why Self-Host GLM 5.2 Instead of the Alternatives</h2>
+        <p class="section-lead">Not about benchmarks. About what you can legally and practically run on your own hardware.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th></th><th>GLM 5.2</th><th>DeepSeek V3.2</th><th>Qwen 3.6</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>License</strong></td><td><strong>MIT</strong> — no restrictions</td><td>DeepSeek License — use-based restrictions, must propagate to downstream</td><td>Apache 2.0 (dense) / proprietary (Max)</td></tr>
+              <tr><td><strong>Architecture</strong></td><td>744B MoE, ~40B active</td><td>671B MoE, ~37B active</td><td>235B MoE, ~22B active</td></tr>
+              <tr><td><strong>1M Context</strong></td><td><span class="badge badge-green">Yes — native</span></td><td>V4 only (128K on V3.x)</td><td>Plus (closed); open version: no</td></tr>
+              <tr><td><strong>Code Arena Rank</strong></td><td><strong>#1</strong></td><td>Top 5</td><td>Top 10</td></tr>
+              <tr><td><strong>Legal Risk</strong></td><td><span class="badge badge-green">Zero</span></td><td>Compliance review needed (Black Duck flagged)</td><td>Low (Apache) / High (proprietary Max)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <strong>Bottom line:</strong> GLM 5.2 is the only model with <strong>MIT + 1M context + production-grade code benchmarks</strong> available today. DeepSeek's license has use-based restrictions that block some commercial deployments. Qwen's 1M context models are closed-source. <a href="/faq/">More comparisons →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>What the Community is Saying</h2>
+        <p class="section-lead">GLM 5.2 went open-source June 16, 2026 — two weeks ago. No production case studies yet. But the early signals are strong.</p>
+        <div class="reasons-grid">
+          <div class="reason-card">
+            <p style="margin-top:0;"><strong>#1 on Code Arena</strong> — the only open-weight model ahead of GPT-5.5 and within 4% of Claude Opus on coding tasks. <a href="https://lmarena.ai/" target="_blank" rel="noopener">LMArena leaderboard →</a></p>
+          </div>
+          <div class="reason-card">
+            <p style="margin-top:0;"><strong>SWE-bench Pro: 62.1%</strong> — beats GPT-5.5 (60.4%) on real-world software engineering tasks. vLLM and SGLang had Day-0 support.</p>
+          </div>
+          <div class="reason-card">
+            <p style="margin-top:0;"><strong>MIT License</strong> — no use-based restrictions, no downstream propagation requirements. Unlike DeepSeek's custom license, your legal team won't flag this.</p>
+          </div>
+          <div class="reason-card">
+            <p style="margin-top:0;"><strong>No production case studies yet</strong> — model open-sourced 14 days ago. This guide is built from first-principles testing: 8×H200, 4×H100, stress-tested 1M context workloads. Every config from live benchmarks.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container" style="text-align:center;">
+        <h2>Free Guides Get You Running. The Manual Gets You to Production.</h2>
+        <p class="section-lead">Installation and basic deployment are free — you'll have GLM 5.2 serving in 10 minutes. But multi-GPU NCCL tuning, 1M context KV cache methodology, and the full code security pipeline (Semgrep → GLM 5.2 → GitHub PR) are in the manual. 8 chapters. 20+ verified error fixes. Configs we actually ran.</p>
+        <div class="price-block">
+          <p class="badge badge-green" style="margin-bottom:12px;">Launch Special — $10 Off</p>
+          <h2 style="font-size:1.25rem;margin:0 0 4px;">GLM 5.2 Production Manual</h2>
+          <p style="color:var(--text-secondary);font-size:.93rem;margin-bottom:12px;">8 chapters · 40+ pages · vLLM/SGLang configs · CI/CD pipeline · 20+ error fixes</p>
+          <div class="price"><span style="text-decoration:line-through;color:var(--gray-500);font-size:1.8rem;font-weight:400;">$29</span> <span style="color:var(--google-green);">$19</span></div>
+          <div class="price-note">$10 off at checkout. One-time. Lifetime updates. <span style="color:var(--accent);">· tax included</span></div>
+          <a href="/production-guide/" class="btn-buy" style="text-decoration:none;">Get the Manual — $19</a>
+          <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;margin-bottom:0;">&#128274; 30-day money-back guarantee — try it risk-free, full refund if it doesn't save you time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>What This is NOT</h2>
+        <div class="anti-grid">
+          <div class="anti-item"><strong>Not a GLM 101 introduction</strong><p>You already know what MoE and KV cache mean. This assumes you've run an LLM locally before.</p></div>
+          <div class="anti-item"><strong>Not fine-tuning or training</strong><p>This is about inference and serving — getting a deployed GLM 5.2 into production and keeping it stable.</p></div>
+          <div class="anti-item"><strong>Not a benchmark comparison site</strong><p>We cite benchmarks where relevant. The focus is configs that work, not leaderboard screenshots.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Quick FAQ</h2>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>Can I run GLM 5.2 on a single GPU?</summary>
+            <div class="faq-answer"><p>FP8 requires ~372 GB VRAM — you need at least 4×H100 or 8×H200. With Q4_K_M GGUF and CPU offloading, you can run it on 4×RTX 4090 (96 GB total), but expect 2-5 tok/s. That's for experimentation, not production serving. The free deployment guide covers hardware requirements in detail.</p></div>
+          </details>
+          <details class="faq-item">
+            <summary>Is the MIT license really safe for commercial use?</summary>
+            <div class="faq-answer"><p>Yes. No use-based restrictions, no downstream propagation, no "acceptable use" policy. Unlike DeepSeek's custom license (which Black Duck flagged for Paragraph 5 restrictions), GLM 5.2's MIT license means your legal team doesn't need to review it. This is a major advantage for teams embedding the model in commercial products.</p></div>
+          </details>
+          <details class="faq-item">
+            <summary>Do I need NVIDIA GPUs, or can I use Ascend/other hardware?</summary>
+            <div class="faq-answer"><p>GLM 5.2 was trained on Huawei Ascend chips, but inference today works primarily on NVIDIA GPUs via vLLM and SGLang. Ascend inference support is in development but not production-ready as of June 2026. This guide covers NVIDIA deployment (H100/H200/RTX).</p></div>
+          </details>
+        </div>
+        <p style="text-align:center;margin-top:20px;"><a href="/faq/" style="color:var(--accent);font-weight:500;">View all FAQs →</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js" defer></script>
+</body>
+</html>
