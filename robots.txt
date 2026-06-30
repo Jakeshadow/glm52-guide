@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://glm52.dev/sitemap.xml
