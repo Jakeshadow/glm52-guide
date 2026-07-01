@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#0f172a"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#10b981"/>
+  <text x="600" y="260" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="48" font-weight="bold" fill="#e2e8f0">Deploy GLM 5.2 in Production</text>
+  <text x="600" y="330" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="56" font-weight="bold" fill="#10b981">744B MoE · 1M Context</text>
+  <text x="600" y="410" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="28" fill="#94a3b8">vLLM, Docker, NCCL tuning, CI/CD security pipeline</text>
+  <text x="600" y="560" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="22" fill="#10b981">glm52.dev</text>
+</svg>
