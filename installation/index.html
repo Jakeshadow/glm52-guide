@@ -24,10 +24,23 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "TechArticle",
-    "headline": "Install GLM 5.2 with vLLM in 10 Minutes",
-    "description": "Hardware requirements, FP8 setup, and first inference for GLM 5.2.",
-    "proficiencyLevel": "Intermediate"
+    "@graph": [
+      {
+        "@type": "HowTo",
+        "name": "Install GLM 5.2 with vLLM in 10 Minutes",
+        "description": "Hardware requirements, FP8 setup, and first inference for GLM 5.2 744B MoE model.",
+        "step": [
+          { "@type": "HowToStep", "position": 1, "name": "Install vLLM", "text": "pip install vllm with --pre flag for latest features. Requires CUDA 12.4+ and PyTorch 2.6+." },
+          { "@type": "HowToStep", "position": 2, "name": "Start the vLLM Server", "text": "Launch with vllm serve --model zai-org/GLM-5.2-744B-AWQ --max-model-len 131072 --tensor-parallel-size 8." },
+          { "@type": "HowToStep", "position": 3, "name": "Verify with curl", "text": "Send a test inference request via curl to confirm the model is serving correctly and returning responses." }
+        ]
+      },
+      {
+        "@type": "TechArticle",
+        "headline": "Install GLM 5.2 with vLLM in 10 Minutes",
+        "proficiencyLevel": "Intermediate"
+      }
+    ]
   }
   </script>
 </head>
