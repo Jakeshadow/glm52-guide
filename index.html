@@ -49,6 +49,29 @@
     ]
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Can I run GLM 5.2 on a single GPU?",
+        "acceptedAnswer": {"@type": "Answer", "text": "FP8 requires ~372 GB VRAM — you need at least 4×H100 or 8×H200. With Q4_K_M GGUF and CPU offloading, you can run it on 4×RTX 4090 (96 GB total), but expect 2-5 tok/s. That's for experimentation, not production serving."}
+      },
+      {
+        "@type": "Question",
+        "name": "Is the MIT license really safe for commercial use?",
+        "acceptedAnswer": {"@type": "Answer", "text": "Yes. No use-based restrictions, no downstream propagation, no acceptable use policy. Unlike DeepSeek's custom license (which Black Duck flagged for Paragraph 5 restrictions), GLM 5.2's MIT license means your legal team doesn't need to review it."}
+      },
+      {
+        "@type": "Question",
+        "name": "Do I need NVIDIA GPUs, or can I use Ascend/other hardware?",
+        "acceptedAnswer": {"@type": "Answer", "text": "GLM 5.2 was trained on Huawei Ascend chips, but inference today works primarily on NVIDIA GPUs via vLLM and SGLang. Ascend inference support is in development but not production-ready as of June 2026. This guide covers NVIDIA deployment (H100/H200/RTX)."}
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <nav class="nav">
@@ -74,7 +97,7 @@
     <section class="hero">
       <div class="container">
         <p class="hero-badge">Open Source · MIT License · Production-Ready</p>
-        <h1>1M Context. 744B Parameters. MIT License.<br>Now Keep It Running in Production.</h1>
+        <h1>GLM 5.2 — 1M Context. 744B Parameters. MIT License.<br>Now Keep It Running in Production.</h1>
         <p class="hero-subtitle">GLM 5.2 is the strongest open-weight coding model — beats GPT-5.5 on SWE-bench, #1 on Code Arena. But self-hosting a 744B MoE at 1M context? Nobody's documented that. Until now.</p>
         <div class="hero-actions">
           <a href="/installation/" class="btn btn-primary">Start Deploying — Free</a>
@@ -211,6 +234,7 @@
   <footer class="footer">
     <div class="container">
       <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p style="margin-top:.5rem;">By <strong>Luke Wang</strong> — GLM 5.2 production deployment researcher. <a href="mailto:glm52-guide@proton.me">glm52-guide@proton.me</a></p>
       <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
     </div>
   </footer>
