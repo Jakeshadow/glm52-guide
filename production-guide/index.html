@@ -38,6 +38,30 @@
       }
     });
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "name": "GLM 5.2 Production Manual",
+        "description": "Complete GLM 5.2 deployment manual — 8 chapters, vLLM/SGLang configs, 1M context KV cache tuning, CI/CD security pipeline, 20+ error fixes.",
+        "offers": {
+          "@type": "Offer",
+          "price": "29",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://glm52.dev/" },
+          { "@type": "ListItem", "position": 2, "name": "Production Manual", "item": "https://glm52.dev/production-guide/" }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <nav class="nav">
@@ -50,6 +74,7 @@
         <li><a href="/1m-context/">1M Context</a></li>
         <li><a href="/architecture/">Architecture</a></li>
         <li><a href="/security-pipeline/">Security</a></li>
+        <li><a href="/zcode/">ZCode</a></li>
         <li><a href="/production-guide/" class="nav-cta">Production Manual</a></li>
       </ul>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">

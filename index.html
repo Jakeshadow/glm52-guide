@@ -16,6 +16,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://glm52.dev/">
   <meta property="og:image" content="https://glm52.dev/assets/og-image.svg">
+  <meta property="og:site_name" content="GLM52.dev">
   <meta name="twitter:image" content="https://glm52.dev/assets/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Self-Host GLM 5.2 in Production — Free Guide">
@@ -26,10 +27,26 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "GLM52.dev",
-    "url": "https://glm52.dev/",
-    "description": "Free guide to self-host GLM 5.2 in production — 1M context, 744B MoE, MIT license."
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "GLM52.dev",
+        "url": "https://glm52.dev/",
+        "description": "Free guide to self-host GLM 5.2 in production — 1M context, 744B MoE, MIT license."
+      },
+      {
+        "@type": "Organization",
+        "name": "GLM52.dev",
+        "url": "https://glm52.dev/",
+        "description": "GLM 5.2 self-hosting guides — installation, multi-GPU deployment, 1M context tuning, security pipeline."
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://glm52.dev/" }
+        ]
+      }
+    ]
   }
   </script>
 </head>
@@ -44,6 +61,7 @@
         <li><a href="/1m-context/">1M Context</a></li>
         <li><a href="/architecture/">Architecture</a></li>
         <li><a href="/security-pipeline/">Security</a></li>
+        <li><a href="/zcode/">ZCode</a></li>
         <li><a href="/production-guide/" class="nav-cta">Production Manual</a></li>
       </ul>
       <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">

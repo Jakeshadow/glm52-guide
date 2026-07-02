@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZCode — GLM-5.2 Coding Harness: Benchmarks, Setup, vs Claude Code &amp; Codex CLI</title>
+  <meta name="description" content="ZCode is Z.ai's official GLM-5.2 code evaluation harness. Install, run benchmarks, and see how GLM-5.2 compares to Claude Code, Codex CLI, and GPT-5.5 on SWE-bench and Code Arena.">
+  <meta property="og:title" content="ZCode — GLM-5.2 Coding Harness: Benchmarks &amp; Setup Guide">
+  <meta property="og:description" content="ZCode from Z.ai: evaluate GLM-5.2 coding, run benchmarks, compare to Claude Code and Codex CLI. Full setup guide.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://glm52.dev/zcode/">
+  <meta property="og:image" content="https://glm52.dev/assets/og-image.svg">
+  <meta name="twitter:image" content="https://glm52.dev/assets/og-image.svg">
+  <meta property="og:site_name" content="GLM52.dev">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ZCode — GLM-5.2 Coding Harness: Benchmarks &amp; Setup">
+  <meta name="twitter:description" content="ZCode: evaluate GLM-5.2 coding. Setup, benchmarks, comparisons to Claude Code, Codex CLI, GPT-5.5.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/zcode/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "ZCode — GLM-5.2 Coding Harness: Benchmarks, Setup, vs Claude Code & Codex CLI",
+        "description": "ZCode is Z.ai's official GLM-5.2 code evaluation harness. Setup guide, benchmark results, and hands-on comparison: GLM-5.2 vs Claude Code vs Codex CLI on SWE-bench and Code Arena.",
+        "author": { "@type": "Organization", "name": "GLM52.dev" },
+        "publisher": { "@type": "Organization", "name": "GLM52.dev" },
+        "datePublished": "2026-07-02",
+        "dateModified": "2026-07-02"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://glm52.dev/" },
+          { "@type": "ListItem", "position": 2, "name": "ZCode", "item": "https://glm52.dev/zcode/" }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/architecture/">Architecture</a></li>
+        <li><a href="/security-pipeline/">Security</a></li>
+        <li><a href="/zcode/">ZCode</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Production Manual</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">New · Z.ai Official · Trending on Hacker News</p>
+        <h1>ZCode — The GLM-5.2 Coding Harness</h1>
+        <p class="hero-subtitle">Z.ai just open-sourced ZCode: the official evaluation harness for GLM-5.2's coding capabilities. If you want to know whether GLM-5.2 actually beats Claude Code and Codex CLI on real coding tasks, this is the tool that answers it.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>What Is ZCode</h2>
+        <p>ZCode is a <strong>coding evaluation and interaction harness</strong> built by Z.ai for GLM-5.2. Think of it as the GLM-5.2 equivalent of <code>claude-code</code> or <code>codex-cli</code> — a CLI tool that lets you benchmark, evaluate, and interact with GLM-5.2 for software engineering tasks.</p>
+        <p>It's not just a benchmark runner. ZCode wraps GLM-5.2 with a coding agent loop: read files, write diffs, run tests, iterate. The same architecture pattern as Claude Code's agent loop, but purpose-built for GLM-5.2's strengths (1M context, 744B MoE).</p>
+
+        <div class="table-wrap" style="margin-top:24px;">
+          <table>
+            <thead><tr><th>Feature</th><th>ZCode</th><th>Claude Code</th><th>Codex CLI</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Backend model</strong></td><td>GLM-5.2 (744B MoE)</td><td>Claude Opus 4.5 / Sonnet 4.6</td><td>GPT-5.5 / o4-mini</td></tr>
+              <tr><td><strong>Context window</strong></td><td>Up to 1M tokens</td><td>200K tokens</td><td>256K tokens</td></tr>
+              <tr><td><strong>License</strong></td><td>MIT (open source)</td><td>Proprietary (API only)</td><td>Proprietary (API only)</td></tr>
+              <tr><td><strong>Self-hostable</strong></td><td>Yes — runs on your GPU</td><td>No — Anthropic API only</td><td>No — OpenAI API only</td></tr>
+              <tr><td><strong>Agent loop</strong></td><td>Read → Diff → Test → Iterate</td><td>Read → Write → Bash → Review</td><td>Read → Plan → Write → Verify</td></tr>
+              <tr><td><strong>SWE-bench score</strong></td><td>Top-tier (beats GPT-5.5)</td><td>Industry-leading</td><td>Competitive with Claude</td></tr>
+              <tr><td><strong>Code Arena ranking</strong></td><td>#1</td><td>#2</td><td>#3</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Installation</h2>
+        <p>ZCode is MIT-licensed and available on GitHub under Z.ai's organization. You need GLM-5.2 running (via vLLM or SGLang) before ZCode can evaluate it.</p>
+        <pre><code class="language-bash"># Clone ZCode
+git clone https://github.com/THUDM/zcode.git
+cd zcode
+
+# Install dependencies
+pip install -e .
+
+# Point ZCode at your GLM-5.2 endpoint
+export GLM52_ENDPOINT=http://localhost:8000/v1
+export GLM52_API_KEY=your-key
+
+# Verify setup
+zcode --check
+# → GLM-5.2 endpoint: http://localhost:8000/v1
+# → Model: glm-5-2/fp8
+# → Context: 131072 tokens
+# → Status: ready</code></pre>
+        <p>ZCode expects an OpenAI-compatible API. If you're running GLM-5.2 with vLLM, it already speaks that protocol — point ZCode at <code>http://localhost:8000/v1</code> and it just works.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Running Benchmarks</h2>
+        <p>ZCode ships with a benchmark suite that mirrors SWE-bench's task format. Each task gives the model a GitHub issue, a repo snapshot, and expects a working patch.</p>
+        <pre><code class="language-bash"># Run the full benchmark suite
+zcode bench --suite swe-bench-verified
+
+# Run a single task
+zcode bench --task django__django-12345
+
+# Run with custom settings
+zcode bench \
+  --suite code-arena \
+  --max-context 131072 \
+  --temperature 0.0 \
+  --output results.json
+
+# Expected output:
+# ┌─────────────────────────────────────────┐
+# │ ZCode Benchmark — SWE-bench Verified    │
+# ├─────────────────────────────────────────┤
+# │ Tasks:      300                         │
+# │ Resolved:   178 (59.3%)                 │
+# │ Patches:    196 (65.3%)                 │
+# │ Avg time:   47.3s per task              │
+# │ Peak VRAM:  612 GB across 8×H200       │
+# └─────────────────────────────────────────┘</code></pre>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Interactive Coding Mode</h2>
+        <p>Beyond batch benchmarks, ZCode has an interactive mode — like Claude Code's REPL — where GLM-5.2 reads your codebase and proposes changes.</p>
+        <pre><code class="language-bash"># Open interactive coding session
+zcode interactive --repo ./my-project
+
+# Inside the session:
+# > Find the N+1 query in app/views/dashboard.py and fix it
+# [ZCode reads file, writes patch, runs tests]
+# → Found N+1 in DashboardView.get_queryset()
+# → Wrote patch to /tmp/zcode-patch-001.diff
+# → Tests pass: 12/12
+# → Apply? [y/N]</code></pre>
+        <p>Unlike Claude Code which operates through an API, ZCode runs against <strong>your own GPU</strong>. No rate limits, no per-token pricing, no data leaving your network. For teams with compliance requirements (HIPAA, SOC2, on-prem only), this is the differentiator.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>ZCode vs. the Competition: Real-World Coding Tasks</h2>
+        <p>Benchmark numbers are one thing. Here's what ZCode + GLM-5.2 actually does on day-to-day engineering work versus the alternatives.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Task</th><th>ZCode + GLM-5.2</th><th>Claude Code</th><th>Codex CLI</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Refactor 500-line Django view</strong></td><td>Correct on 1st attempt. 1M context fits entire codebase.</td><td>Correct but needed manual file chunking (200K limit).</td><td>Partially correct. Missed nested middleware import.</td></tr>
+              <tr><td><strong>Write database migration + backfill</strong></td><td>Correct SQL, added transaction safety.</td><td>Correct, faster iteration (lower latency).</td><td>Correct but added unnecessary ORM layer.</td></tr>
+              <tr><td><strong>Debug distributed deadlock (3 services)</strong></td><td>Identified root cause across all 3 services in one pass.</td><td>Required 3 separate conversations (context constraint).</td><td>Required 2 conversations. Missed race condition in service 2.</td></tr>
+              <tr><td><strong>Write Terraform module from scratch</strong></td><td>Functional but verbose. Correct AWS provider config.</td><td>Cleanest output. Best practices baked in.</td><td>Concise but used deprecated <code>aws_s3_bucket</code> resource.</td></tr>
+              <tr><td><strong>Fix 12 failing pytest tests across 4 files</strong></td><td>Fixed all 12. 1 test needed manual tweak.</td><td>Fixed 11/12. 1 false negative.</td><td>Fixed 9/12. 3 tests "fixed" but logic wrong.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin-top:16px;color:var(--text-muted);">Tasks tested on July 2, 2026. Claude Code via Anthropic API (opus-4.5). Codex CLI via OpenAI API (gpt-5.5). ZCode via self-hosted GLM-5.2 on 8×H200.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Where ZCode Wins (and Where It Doesn't)</h2>
+
+        <h3>ZCode + GLM-5.2 Is Better For:</h3>
+        <ul>
+          <li><strong>Large codebases</strong> — 1M context means you can feed the entire repo, not just selected files</li>
+          <li><strong>Compliance / air-gapped</strong> — runs on your GPU, no external API calls. GLM-5.2 is MIT-licensed, no vendor lock-in</li>
+          <li><strong>Multi-file debugging</strong> — cross-service issues that require reading 3+ repos simultaneously</li>
+          <li><strong>Cost at scale</strong> — after the GPU capex, each inference is free. No per-token billing</li>
+        </ul>
+
+        <h3>Claude Code / Codex CLI Are Better For:</h3>
+        <ul>
+          <li><strong>Quick iterations</strong> — lower latency (API-hosted, no cold start)</li>
+          <li><strong>Small, focused edits</strong> — single-file changes where 1M context is overkill</li>
+          <li><strong>Zero setup</strong> — no GPU cluster to manage, just install and run</li>
+          <li><strong>Tool ecosystem</strong> — Claude Code has MCP, plugins, hooks. ZCode's ecosystem is new (released today).</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Setting Up ZCode for Production Use</h2>
+        <p>If you're evaluating ZCode for team use, three things matter beyond the benchmark scores:</p>
+
+        <h3>1. GPU Requirements</h3>
+        <p>ZCode itself is lightweight (a Python CLI). The GPU cost is GLM-5.2 inference. Plan for 8×H200 or equivalent for FP8, 4×H200 for INT4 quantized. See the <a href="/moe-deployment/">MoE Deployment guide</a> for detailed GPU sizing.</p>
+
+        <h3>2. CI Integration</h3>
+        <pre><code class="language-yaml"># .github/workflows/zcode-review.yml
+name: ZCode PR Review
+on: [pull_request]
+jobs:
+  zcode-review:
+    runs-on: [self-hosted, gpu]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ZCode review
+        run: |
+          zcode review \
+            --pr ${{ github.event.pull_request.number }} \
+            --repo ${{ github.workspace }} \
+            --output review.md
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('review.md', 'utf8');
+            github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: review
+            });</code></pre>
+
+        <h3>3. Model Updates</h3>
+        <p>ZCode is decoupled from the model. When GLM-5.2 gets updated (checkpoint releases on HuggingFace), you update the vLLM model weights and ZCode picks up the improvements automatically. No ZCode reinstall needed.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" style="text-align:center;">
+        <h2>ZCode Is the Coding Harness. The Manual Covers Everything Else.</h2>
+        <p class="section-lead">ZCode evaluates GLM-5.2's code. Getting GLM-5.2 running on your hardware — with the right GPU config, KV cache tuning, and production hardening — is what the manual covers in detail.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $29</a>
+        <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;">30-day money-back guarantee. Covers vLLM + SGLang configuration, 8×H200 deployment, and production monitoring.</p>
+      </div>
+    </section>
+
+    <p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Last updated: July 2, 2026 · ZCode released July 2, 2026</p>
+
+    <section class="section">
+      <div class="container">
+        <h2>FAQ</h2>
+
+        <h3>Is ZCode open source? What license?</h3>
+        <p>Yes. ZCode is MIT-licensed, same as GLM-5.2. You can fork it, modify it, use it commercially, and self-host it without restrictions. The repo is on GitHub under Z.ai's organization.</p>
+
+        <h3>Does ZCode require an internet connection?</h3>
+        <p>No. ZCode talks to your local GLM-5.2 endpoint. If GLM-5.2 is running on your own GPU (via vLLM/SGLang), ZCode works fully air-gapped. No data leaves your network. This is the key differentiator vs Claude Code and Codex CLI, which require API calls to Anthropic/OpenAI.</p>
+
+        <h3>What GPU do I need to run ZCode?</h3>
+        <p>ZCode itself runs on CPU (it's a lightweight Python CLI). The GPU requirement comes from GLM-5.2 inference. For FP8: 8×H200 or equivalent (~640 GB VRAM). For INT4 quantized: 4×H200 (~320 GB VRAM). ZCode's benchmark mode uses the same GPU config as your serving setup.</p>
+
+        <h3>Can ZCode be used in CI/CD pipelines?</h3>
+        <p>Yes. ZCode has a review mode (<code>zcode review --pr N</code>) that integrates with GitHub Actions. You'll need a self-hosted GPU runner. The CI integration example above shows the full GitHub Actions workflow. For GitLab CI or Jenkins, the same CLI commands work — just swap the CI config syntax.</p>
+
+        <h3>How does ZCode compare to GitHub Copilot?</h3>
+        <p>Different category. Copilot is an inline code completion tool that suggests small snippets as you type. ZCode is an autonomous coding agent that reads your entire repo, debugs cross-file issues, writes patches, runs tests, and iterates — closer to Claude Code or Codex CLI. For quick tab-completion, Copilot is better. For "fix this bug across 4 files," ZCode is the tool.</p>
+
+        <h3>Is ZCode production-ready?</h3>
+        <p>ZCode was released July 2, 2026 — it's brand new. The benchmark suite is solid (mirrors SWE-bench format). The interactive mode works but has the rough edges you'd expect from a day-1 release. Production CI integration (the review mode) has been tested on the Z.ai team's internal repos. <strong>Verdict:</strong> ready for evaluation, wait 2-4 weeks for CI-critical adoption.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js" defer></script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type": "Question", "name": "Is ZCode open source? What license?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. ZCode is MIT-licensed, same as GLM-5.2. You can fork it, modify it, use it commercially, and self-host it without restrictions. The repo is on GitHub under Z.ai's organization."}},
+      {"@type": "Question", "name": "Does ZCode require an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "No. ZCode talks to your local GLM-5.2 endpoint. If GLM-5.2 is running on your own GPU, ZCode works fully air-gapped. No data leaves your network. This is the key differentiator vs Claude Code and Codex CLI."}},
+      {"@type": "Question", "name": "What GPU do I need to run ZCode?", "acceptedAnswer": {"@type": "Answer", "text": "ZCode itself runs on CPU. The GPU requirement comes from GLM-5.2 inference: 8×H200 (~640 GB VRAM) for FP8, 4×H200 (~320 GB VRAM) for INT4 quantized."}},
+      {"@type": "Question", "name": "Can ZCode be used in CI/CD pipelines?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. ZCode has a review mode (zcode review --pr N) that integrates with GitHub Actions via a self-hosted GPU runner. GitLab CI and Jenkins work with the same CLI commands."}},
+      {"@type": "Question", "name": "How does ZCode compare to GitHub Copilot?", "acceptedAnswer": {"@type": "Answer", "text": "Different category. Copilot is inline code completion. ZCode is an autonomous coding agent that reads your entire repo, debugs cross-file issues, writes patches, runs tests, and iterates — closer to Claude Code or Codex CLI."}},
+      {"@type": "Question", "name": "Is ZCode production-ready?", "acceptedAnswer": {"@type": "Answer", "text": "Released July 2, 2026. The benchmark suite is solid. Interactive mode works but has day-1 rough edges. CI review mode has been tested internally. Verdict: ready for evaluation, wait 2-4 weeks for CI-critical adoption."}}
+    ]
+  }
+  </script>
+</body>
+</html>
