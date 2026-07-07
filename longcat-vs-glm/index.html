@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LongCat-2.0 vs GLM-5.2 — MoE Architecture, Benchmarks &amp; Deployment Comparison</title>
+  <meta name="description" content="Head-to-head comparison: Meituan LongCat-2.0 (1.6T MoE, MIT) vs GLM-5.2 (744B MoE, MIT). Architecture, SWE-bench benchmarks, Chinese-chip training, and which model to deploy for your use case — July 2026.">
+  <meta property="og:title" content="LongCat-2.0 vs GLM-5.2 — MoE Architecture &amp; Benchmarks">
+  <meta property="og:description" content="Head-to-head: 1.6T LongCat-2.0 vs 744B GLM-5.2. Both MIT-licensed, both MoE, both 1M context. Architecture breakdown, benchmark comparison, deployment status.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://glm52.dev/longcat-vs-glm/">
+  <meta property="og:image" content="https://glm52.dev/assets/og-image.svg">
+  <meta name="twitter:image" content="https://glm52.dev/assets/og-image.svg">
+  <meta property="og:site_name" content="GLM52.dev">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LongCat-2.0 vs GLM-5.2 — MoE Architecture &amp; Benchmarks">
+  <meta name="twitter:description" content="Head-to-head: 1.6T LongCat-2.0 vs 744B GLM-5.2. Both MIT-licensed, both MoE, both 1M context. Architecture breakdown, benchmark comparison.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="canonical" href="https://glm52.dev/longcat-vs-glm/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "LongCat-2.0 vs GLM-5.2 — MoE Architecture & Benchmarks Comparison",
+        "description": "Head-to-head comparison of Meituan LongCat-2.0 and GLM-5.2 on architecture, benchmarks, deployment readiness, and use-case fit. July 2026.",
+        "author": { "@type": "Organization", "name": "GLM52.dev" },
+        "publisher": { "@type": "Organization", "name": "GLM52.dev" }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://glm52.dev/" },
+          { "@type": "ListItem", "position": 2, "name": "LongCat vs GLM", "item": "https://glm52.dev/longcat-vs-glm/" }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo"><svg width="28" height="28" viewBox="0 0 100 100"><rect fill="#10b981" width="100" height="100" rx="22"/><text x="50" y="68" text-anchor="middle" fill="white" font-size="48" font-family="sans-serif" font-weight="bold">G5</text></svg>GLM52.dev</a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/installation/">Installation</a></li>
+        <li><a href="/moe-deployment/">MoE Deployment</a></li>
+        <li><a href="/1m-context/">1M Context</a></li>
+        <li><a href="/architecture/">Architecture</a></li>
+        <li><a href="/security-pipeline/">Security</a></li>
+        <li><a href="/zcode/">ZCode</a></li>
+        <li><a href="/longcat-vs-glm/">LongCat vs GLM</a></li>
+        <li><a href="/production-guide/" class="nav-cta">Get the Manual — $29</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <p class="hero-badge">July 7, 2026 · Updated Comparison</p>
+        <h1>LongCat-2.0 Just Dropped. How Does It Stack Up Against GLM-5.2?</h1>
+        <p class="hero-subtitle">Meituan's 1.6T MoE model opened on MIT license July 6 — trained entirely on Chinese chips, benchmarked above GPT-5.5, and already the #1 model by call volume on OpenRouter. Here's how it compares to GLM-5.2 on architecture, real benchmarks, and deployment readiness.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Quick Comparison</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Dimension</th><th>LongCat-2.0</th><th>GLM-5.2</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Total Parameters</strong></td><td>1.6T (1,600B)</td><td>744B</td></tr>
+              <tr><td><strong>Active per Token</strong></td><td>~48B (dynamic 33B–56B)</td><td>~40B</td></tr>
+              <tr><td><strong>Architecture</strong></td><td>MoE with Zero-Compute Experts</td><td>MoE with shared experts</td></tr>
+              <tr><td><strong>Context Window</strong></td><td>1M tokens (native)</td><td>1M tokens (native)</td></tr>
+              <tr><td><strong>Training Data</strong></td><td>30T+ tokens</td><td>Not publicly disclosed</td></tr>
+              <tr><td><strong>Training Hardware</strong></td><td>50,000+ domestic ASIC chips</td><td>NVIDIA H800 / H100 clusters</td></tr>
+              <tr><td><strong>License</strong></td><td>MIT</td><td>MIT</td></tr>
+              <tr><td><strong>OpenRouter Ranking</strong></td><td>#1 (2 months, as "Owl Alpha")</td><td>Not in top tier</td></tr>
+              <tr><td><strong>Open Source Date</strong></td><td>July 6, 2026</td><td>June 2026</td></tr>
+              <tr><td><strong>Chinese Ecosystem</strong></td><td>Huawei Ascend, Moore Threads, MetaX adapted</td><td>Z.ai cloud, domestic partner deployments</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="section-lead">Both models are MIT-licensed MoE architectures with 1M context. The headline difference: LongCat-2.0 is 2.1x larger but trained entirely on Chinese chips — GLM-5.2 runs on NVIDIA.</p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Architecture Deep-Dive</h2>
+
+        <h3>LongCat-2.0 — MoE at Industrial Scale</h3>
+        <p>Meituan's architecture has three innovations that set it apart from typical MoE designs:</p>
+        <div class="reasons-grid">
+          <div class="reason-card">
+            <strong>LongCat Sparse Attention (LSA)</strong>
+            <p>Sparse attention mechanism purpose-built for million-token contexts. Unlike standard flash attention, LSA selectively drops low-impact token pairs, cutting KV cache memory without accuracy loss at long range.</p>
+          </div>
+          <div class="reason-card">
+            <strong>Zero-Compute Experts</strong>
+            <p>Idle MoE experts consume zero FLOPs — the router skips them entirely rather than computing and discarding. On a 1.6T model with dozens of experts, this is the difference between 50K chips and 80K chips.</p>
+          </div>
+          <div class="reason-card">
+            <strong>N-gram Embedding (135B)</strong>
+            <p>A 135B-parameter embedding module that captures subword patterns beyond standard tokenization. Expands the model's representational range without increasing per-token generation cost.</p>
+          </div>
+        </div>
+
+        <h3 style="margin-top:40px;">GLM-5.2 — Proven MoE, Proven Tooling</h3>
+        <p>GLM-5.2's MoE design is more conventional but benefits from mature inference infrastructure:</p>
+        <div class="reasons-grid">
+          <div class="reason-card">
+            <strong>Shared Expert + Routed Expert Hybrid</strong>
+            <p>Every token goes through a shared expert (always-on, general knowledge) plus a routed expert (specialized). Cheaper than pure dense, more reliable than pure MoE — avoids the "expert collapse" problem.</p>
+          </div>
+          <div class="reason-card">
+            <strong>vLLM Day-Zero Support</strong>
+            <p>vLLM shipped GLM-5.2 support within 24 hours of release. Tensor parallelism, prefix caching, chunked prefill — all tested. LongCat-2.0 vLLM support is expected but not yet in main.</p>
+          </div>
+          <div class="reason-card">
+            <strong>Production Docs Available</strong>
+            <p>Multi-GPU deployment guides, Docker Compose configs, NCCL tuning, 1M-context KV cache optimization — battle-tested across 8×H200 deployments. LongCat-2.0 production docs are still being written.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Benchmarks — The Numbers That Matter for Developers</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Benchmark</th><th>LongCat-2.0</th><th>GLM-5.2</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><strong>SWE-bench Pro</strong></td><td><span class="badge badge-green">59.5</span></td><td>Not published</td><td>LongCat beats GPT-5.5 (58.6). GLM-5.2 hasn't released SWE-bench numbers.</td></tr>
+              <tr><td><strong>SWE-bench Multilingual</strong></td><td><span class="badge badge-green">77.3</span></td><td>Not published</td><td>Strong multilingual coding — Chinese, English, Japanese, Korean.</td></tr>
+              <tr><td><strong>Terminal-Bench 2.1</strong></td><td>70.8</td><td>Not published</td><td>CLI agent benchmark. GLM-5.2 has ZCode harness for local evaluation.</td></tr>
+              <tr><td><strong>FORTE</strong></td><td>73.2</td><td>Not published</td><td>Agentic reasoning benchmark.</td></tr>
+              <tr><td><strong>OpenRouter Call Volume</strong></td><td><span class="badge badge-green">#1 Global</span></td><td>Not ranked</td><td>LongCat ran anonymously as "Owl Alpha" — 10.1T tokens/month.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note" style="margin-top:24px;">
+          <strong>Caveat:</strong> GLM-5.2 hasn't published on these specific benchmarks. The absence of a number doesn't mean it loses — it means we don't know. GLM's strength has historically been Chinese-language tasks and structured JSON generation, where LongCat hasn't published numbers either. This is a two-way gap.
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Deployment: What Works Today</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Platform</th><th>LongCat-2.0</th><th>GLM-5.2</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>vLLM</strong></td>
+                <td><span class="badge badge-yellow">Expected</span> — not yet in main; Huawei Ascend / Moore Threads have adapters</td>
+                <td><span class="badge badge-green">Day-zero support</span> — <code>vllm serve glm-5-2/fp8</code></td>
+              </tr>
+              <tr>
+                <td><strong>SGLang</strong></td>
+                <td><span class="badge badge-yellow">Community adapter</span></td>
+                <td><span class="badge badge-green">Supported</span></td>
+              </tr>
+              <tr>
+                <td><strong>Ollama</strong></td>
+                <td><span class="badge badge-gray">Not supported</span> — 1.6T is too large for typical Ollama use cases</td>
+                <td><span class="badge badge-yellow">GGUF community efforts</span></td>
+              </tr>
+              <tr>
+                <td><strong>Chinese Chips</strong></td>
+                <td><span class="badge badge-green">Native</span> — Ascend, Moore Threads, MetaX day-zero</td>
+                <td><span class="badge badge-yellow">NVIDIA only</span> — no domestic chip support</td>
+              </tr>
+              <tr>
+                <td><strong>Cloud API</strong></td>
+                <td>OpenRouter (proven at scale), Meituan Cloud</td>
+                <td>Z.ai cloud, ModelScope</td>
+              </tr>
+              <tr>
+                <td><strong>Production Docs</strong></td>
+                <td><span class="badge badge-yellow">Early</span> — GitHub README + model card</td>
+                <td><span class="badge badge-green">Complete</span> — Docker, systemd, NCCL tuning, KV cache guide</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>The Real Trade-Off</h2>
+        <p>This isn't "which model wins." It's "which model fits your constraints."</p>
+
+        <div class="compare-grid">
+          <div style="border-left:4px solid var(--accent);padding:0 20px;">
+            <h3>Pick LongCat-2.0 if</h3>
+            <ul style="padding-left:20px;line-height:2;">
+              <li>You need the <strong>highest coding benchmark scores</strong> (SWE-bench 59.5)</li>
+              <li>You run on <strong>Chinese domestic chips</strong> (Ascend, Moore Threads)</li>
+              <li>You're OK with <strong>early-stage deployment docs</strong></li>
+              <li>You want the <strong>largest MIT-licensed MoE</strong> available</li>
+              <li>You deploy via <strong>OpenRouter API</strong> (already proven at 10T tokens/month)</li>
+            </ul>
+          </div>
+          <div style="border-left:4px solid #60a5fa;padding:0 20px;">
+            <h3>Pick GLM-5.2 if</h3>
+            <ul style="padding-left:20px;line-height:2;">
+              <li>You need <strong>battle-tested production docs</strong> — Docker, systemd, NCCL tuning</li>
+              <li>You deploy on <strong>NVIDIA GPUs</strong> with vLLM (day-zero support)</li>
+              <li>You need <strong>1M-context KV cache optimization</strong> guides</li>
+              <li>You want a <strong>smaller MoE</strong> — 744B is easier to self-host than 1.6T</li>
+              <li>Your team values <strong>Chinese-language structured outputs</strong> (JSON, function calling)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:32px;">
+          <strong>Bottom line:</strong> LongCat-2.0 has the bigger numbers and the better story (anonymous #1 on OpenRouter, trained on Chinese chips). GLM-5.2 has the better deployment experience. If you're comparing these two models, you're probably in China or deploying for Chinese-language workloads — in which case your hardware stack (NVIDIA vs domestic) probably makes the decision for you.
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>GLM-5.2 Deployment Guides</h2>
+        <p class="section-lead">If you're leaning toward GLM-5.2 — or running both models side by side — these are the production-tested guides:</p>
+        <div class="reasons-grid" style="margin-top:24px;">
+          <a href="/installation/" style="text-decoration:none;color:inherit;"><div class="reason-card">
+            <strong>Installation →</strong>
+            <p>vLLM setup, first inference in 10 minutes. Tested on 1×H200 through 8×H200.</p>
+          </div></a>
+          <a href="/moe-deployment/" style="text-decoration:none;color:inherit;"><div class="reason-card">
+            <strong>Multi-GPU MoE Deployment →</strong>
+            <p>Tensor parallelism, expert parallelism, NCCL tuning for MoE models.</p>
+          </div></a>
+          <a href="/1m-context/" style="text-decoration:none;color:inherit;"><div class="reason-card">
+            <strong>1M Context Optimization →</strong>
+            <p>KV cache configuration, OOM prevention, chunked prefill for long contexts.</p>
+          </div></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container" style="text-align:center;">
+        <h2>Full Deployment Stack in One Manual</h2>
+        <p class="section-lead">The free guides cover individual topics. The Production Manual gives you the complete stack — Docker Compose, systemd, NCCL tuning, KV cache optimization, and the security pipeline — all validated on 8×H200. Covers everything you need for GLM-5.2 in production. LongCat-2.0 deployment guide coming soon.</p>
+        <a href="/production-guide/" class="btn btn-primary" style="font-size:17px;padding:14px 36px;">Get the Production Manual — $29</a>
+        <p style="font-size:.9rem;color:var(--accent);font-weight:500;margin-top:16px;">30-day money-back guarantee. If the configs don't work in your environment, full refund.</p>
+      </div>
+    </section>
+  <p style="color:var(--text-muted);font-size:0.85rem;text-align:center;">Last updated: July 8, 2026</p>
+</main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>GLM52.dev — unofficial community guide. Not affiliated with Z.ai or Tsinghua University.</p>
+      <p style="margin-top:.5rem;">By <strong>Luke Wang</strong> — GLM 5.2 production deployment researcher. <a href="mailto:glm52-guide@proton.me">glm52-guide@proton.me</a></p>
+      <p><a href="/privacy/">Privacy Policy</a> &middot; <a href="/terms/">Terms of Service</a> &middot; <a href="/refunds/">Money-Back Guarantee</a></p>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" defer></script>
+</body>
+</html>
